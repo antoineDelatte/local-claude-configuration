@@ -36,7 +36,7 @@ wto ~/Projects/my-android-app --branch fix/crash-on-login
 wto --branch feature/auth --claude
 ```
 
-The worktree is created at `<project-root>/.worktrees/<branch-name>`.
+The worktree is created at `<project-parent>/<repo-name>-worktrees/<branch-name>`, as a sibling to the repository — keeping it completely outside the repo to prevent accidental commits or pushes.
 
 ### Extending
 

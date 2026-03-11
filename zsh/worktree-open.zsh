@@ -71,8 +71,9 @@ worktree-open() {
   dir_name="${dir_name// /-}"               # spaces to hyphens
   dir_name="${dir_name#/}"                  # strip leading slash
 
-  # --- Worktree path ---
-  local worktree_path="$git_root/.worktrees/$dir_name"
+  # --- Worktree path (sibling to the repo, outside it to prevent accidental git inclusion) ---
+  local repo_name="${git_root:t}"
+  local worktree_path="${git_root:h}/${repo_name}-worktrees/$dir_name"
 
   if [[ -d "$worktree_path" ]]; then
     print "Worktree already exists at: $worktree_path" >&2

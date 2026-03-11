@@ -25,7 +25,7 @@ local-claude-configuration/
 
 ## Key Conventions
 
-- **Worktree path**: `<git-root>/.worktrees/<branch-name>` (separate from `.claude/worktrees/` which is Claude Code's own convention)
+- **Worktree path**: `<git-root-parent>/<repo-name>-worktrees/<branch-name>` — sibling to the repo, outside it to prevent accidental inclusion in git pushes
 - **Branch naming**: user-provided, stored as-is in git; directory name is lowercased with spaces→hyphens
 - **Installation**: symlink into `~/.oh-my-zsh/custom/` if oh-my-zsh is present, else append `source` line to `~/.zshrc`
 - **Claude launch**: opt-in via `--claude` flag; opens a new Terminal.app window via `osascript`
