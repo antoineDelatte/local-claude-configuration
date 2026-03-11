@@ -20,6 +20,7 @@ if [[ -d "$HOME/.oh-my-zsh/custom" ]]; then
   fi
   echo ""
   echo "Reload your shell to activate: source ~/.zshrc"
+  echo "To update later, run:          bash $REPO_DIR/update.sh"
   exit 0
 fi
 
@@ -40,3 +41,4 @@ fi
 
 echo ""
 echo "Reload your shell to activate: source ~/.zshrc"
+echo "To update later, run:          bash $REPO_DIR/update.sh"

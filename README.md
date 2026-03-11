@@ -20,6 +20,14 @@ bash install.sh
 source ~/.zshrc
 ```
 
+### Updating
+
+```zsh
+bash update.sh
+```
+
+Pulls the latest changes and re-runs the installer if needed.
+
 ### Usage
 
 ```zsh
