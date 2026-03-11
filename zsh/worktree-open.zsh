@@ -9,6 +9,7 @@
 # Source helpers relative to this file's location
 source "${0:A:h}/detect-project-type.zsh"
 source "${0:A:h}/open-in-ide.zsh"
+source "${0:A:h}/copy-worktree-files.zsh"
 
 worktree-open() {
   local project_path=""
@@ -100,6 +101,26 @@ worktree-open() {
     else
       return 1
     fi
+  fi
+
+  # --- Copy worktree files ---
+  local -a copy_entries=()
+  # Project-level dotfile
+  if [[ -f "$git_root/.wto-copy" ]]; then
+    copy_entries+=("${(@f)$(< "$git_root/.wto-copy")}")
+  fi
+  # Personal overrides (gitignored)
+  if [[ -f "$git_root/.wto-copy.local" ]]; then
+    copy_entries+=("${(@f)$(< "$git_root/.wto-copy.local")}")
+  fi
+  # Global config fallback
+  local global_conf="${XDG_CONFIG_HOME:-$HOME/.config}/wto/${repo_name}.conf"
+  if [[ -f "$global_conf" ]]; then
+    copy_entries+=("${(@f)$(< "$global_conf")}")
+  fi
+  if [[ ${#copy_entries} -gt 0 ]]; then
+    print "Copying worktree files..."
+    _wto_copy_files "$git_root" "$worktree_path" "${copy_entries[@]}"
   fi
 
   # --- Open IDE ---

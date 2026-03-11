@@ -46,6 +46,25 @@ wto --branch feature/auth --claude
 
 The worktree is created at `<project-parent>/<repo-name>-worktrees/<branch-name>`, as a sibling to the repository — keeping it completely outside the repo to prevent accidental commits or pushes.
 
+### Auto-copying files into worktrees
+
+Gitignored files like `.env` or `google-services.json` aren't included in worktrees. To auto-copy them, create a `.wto-copy` file in the project root:
+
+```
+# one path per line, relative to repo root
+.env
+app/google-services.json
+```
+
+Files are copied from the main repo into each new worktree at creation time.
+
+**Config sources** (all merged):
+| File | Scope | Committable? |
+|------|-------|--------------|
+| `.wto-copy` | Project | Yes |
+| `.wto-copy.local` | Personal (gitignored) | No |
+| `~/.config/wto/<repo-name>.conf` | Global (for repos you don't own) | N/A |
+
 ### Extending
 
 | To add...          | File to edit                      |
