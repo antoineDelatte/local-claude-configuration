@@ -21,7 +21,8 @@ local-claude-configuration/
     ├── worktree-open.zsh           ← main command: argument parsing, worktree creation, orchestration
     ├── detect-project-type.zsh     ← project type detection logic
     ├── open-in-ide.zsh             ← IDE opening logic
-    └── copy-worktree-files.zsh     ← auto-copy gitignored files into new worktrees
+    ├── copy-worktree-files.zsh     ← auto-copy gitignored files into new worktrees
+    └── run-worktree-setup.zsh      ← run per-repo `.wto/setup` inside new worktrees
 ```
 
 ## Key Conventions
@@ -30,7 +31,9 @@ local-claude-configuration/
 - **Branch naming**: user-provided, stored as-is in git; directory name is lowercased with spaces→hyphens
 - **Installation**: symlink into `~/.oh-my-zsh/custom/` if oh-my-zsh is present, else append `source` line to `~/.zshrc`
 - **Claude launch**: opt-in via `--claude` flag; opens a new Terminal.app window via `osascript`
-- **File copying**: `.wto-copy` (project), `.wto-copy.local` (personal/gitignored), `~/.config/wto/<repo>.conf` (global fallback) — one path per line, `#` comments; all sources merged
+- **Per-repo config**: gitignored `.wto/` dir in the main repo (read from there, never copied into worktrees)
+- **File copying**: `.wto/copy-files` (preferred), legacy `.wto-copy` / `.wto-copy.local` (deprecated, still honored with a stderr note), `~/.config/wto/<repo>.conf` (global fallback) — one path per line, `#` comments; all sources merged
+- **Setup**: `.wto/setup` run as `zsh "$git_root/.wto/setup"` with cwd = worktree, after copy and before IDE; env `WTO_SOURCE_ROOT`, `WTO_WORKTREE`; failure warns, continues, `wto` returns 1; `--no-setup` skips; no global fallback
 
 ## Extensibility
 
@@ -50,15 +53,18 @@ fi
 Edit `zsh/open-in-ide.zsh`. Add a `case` branch for the new project type, or extend the fallback chain.
 
 ### Add files to auto-copy into worktrees
-Create a `.wto-copy` file in the project root with one path per line (relative to repo root). Lines starting with `#` are comments. For personal/secret paths, use `.wto-copy.local` (should be gitignored). For repos you don't own, use `~/.config/wto/<repo-name>.conf` (same format). All sources are merged.
+Create `.wto/copy-files` in the project root (keep `.wto/` gitignored) with one path per line (relative to repo root). Lines starting with `#` are comments. For repos you don't own, `~/.config/wto/<repo-name>.conf` (same format) also works. Legacy `.wto-copy` / `.wto-copy.local` are still merged but print a deprecation note. All sources are merged.
 
-Example `.wto-copy`:
+Example `.wto/copy-files`:
 ```
 # Environment
 .env
 # Firebase
 app/google-services.json
 ```
+
+### Add a setup step for new worktrees
+Create `.wto/setup` in the project root: a zsh script run with cwd = new worktree (e.g. `pod install`). `WTO_SOURCE_ROOT` / `WTO_WORKTREE` are exported. Logic lives in `zsh/run-worktree-setup.zsh`.
 
 ### Add a new flag or behavior
 Edit `zsh/worktree-open.zsh`. Add a new `case` entry in the argument parser and the corresponding logic below.

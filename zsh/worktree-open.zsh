@@ -1,20 +1,24 @@
 # worktree-open: create a git worktree, open the IDE, and optionally launch Claude Code.
-# Usage: wto [<project-path>] [--branch <name>] [--claude]
+# Usage: wto [<project-path>] [--branch <name>] [--claude] [--no-setup]
 #
 # Options:
 #   <project-path>   Path to the git project root (default: current directory)
 #   --branch <name>  Branch/worktree name (prompted if omitted)
 #   --claude         Also open a Claude Code session in the new worktree
+#   --no-setup       Skip running the repo's .wto/setup script
 
 # Source helpers relative to this file's location
 source "${0:A:h}/detect-project-type.zsh"
 source "${0:A:h}/open-in-ide.zsh"
 source "${0:A:h}/copy-worktree-files.zsh"
+source "${0:A:h}/run-worktree-setup.zsh"
 
 worktree-open() {
   local project_path=""
   local branch_name=""
   local launch_claude=false
+  local run_setup=true
+  local setup_failed=false
 
   # --- Argument parsing ---
   while [[ $# -gt 0 ]]; do
@@ -26,9 +30,12 @@ worktree-open() {
       --claude)
         launch_claude=true
         ;;
+      --no-setup)
+        run_setup=false
+        ;;
       -*)
         print "Unknown option: $1" >&2
-        print "Usage: wto [<project-path>] [--branch <name>] [--claude]" >&2
+        print "Usage: wto [<project-path>] [--branch <name>] [--claude] [--no-setup]" >&2
         return 1
         ;;
       *)
@@ -104,15 +111,19 @@ worktree-open() {
   fi
 
   # --- Copy worktree files ---
-  local -a copy_entries=()
-  # Project-level dotfile
-  if [[ -f "$git_root/.wto-copy" ]]; then
-    copy_entries+=("${(@f)$(< "$git_root/.wto-copy")}")
+  local -aU copy_entries=()  # -U: dedupe entries listed in several sources
+  # Per-repo config dir (gitignored)
+  if [[ -f "$git_root/.wto/copy-files" ]]; then
+    copy_entries+=("${(@f)$(< "$git_root/.wto/copy-files")}")
   fi
-  # Personal overrides (gitignored)
-  if [[ -f "$git_root/.wto-copy.local" ]]; then
-    copy_entries+=("${(@f)$(< "$git_root/.wto-copy.local")}")
-  fi
+  # Legacy dotfiles (deprecated, still honored)
+  local legacy
+  for legacy in .wto-copy .wto-copy.local; do
+    if [[ -f "$git_root/$legacy" ]]; then
+      print "note: $legacy is deprecated, move to .wto/copy-files" >&2
+      copy_entries+=("${(@f)$(< "$git_root/$legacy")}")
+    fi
+  done
   # Global config fallback
   local global_conf="${XDG_CONFIG_HOME:-$HOME/.config}/wto/${repo_name}.conf"
   if [[ -f "$global_conf" ]]; then
@@ -121,6 +132,11 @@ worktree-open() {
   if [[ ${#copy_entries} -gt 0 ]]; then
     print "Copying worktree files..."
     _wto_copy_files "$git_root" "$worktree_path" "${copy_entries[@]}"
+  fi
+
+  # --- Run per-repo setup ---
+  if [[ "$run_setup" == true ]]; then
+    _wto_run_setup "$git_root" "$worktree_path" || setup_failed=true
   fi
 
   # --- Open IDE ---
@@ -134,6 +150,8 @@ worktree-open() {
   fi
 
   print "Done. Worktree: $worktree_path"
+  [[ "$setup_failed" == true ]] && return 1
+  return 0
 }
 
 alias wto='worktree-open'
