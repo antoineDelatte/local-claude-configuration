@@ -42,13 +42,28 @@ wto ~/Projects/my-android-app --branch fix/crash-on-login
 
 # Also open a Claude Code session in the new worktree
 wto --branch feature/auth --claude
+
+# Skip the repo's .wto/setup script
+wto --branch feature/quick-fix --no-setup
 ```
 
 The worktree is created at `<project-parent>/<repo-name>-worktrees/<branch-name>`, as a sibling to the repository — keeping it completely outside the repo to prevent accidental commits or pushes.
 
-### Auto-copying files into worktrees
+### Per-repo config (`.wto/`)
 
-Gitignored files like `.env` or `google-services.json` aren't included in worktrees. To auto-copy them, create a `.wto-copy` file in the project root:
+Per-repo `wto` config lives in a `.wto/` directory at the repo root:
+
+```
+.wto/
+├── copy-files   # gitignored files to copy into each new worktree
+└── setup        # bootstrap script run inside each new worktree
+```
+
+`.wto/` is read from the main repo and is not copied into worktrees. Keep it out of git — either globally (`echo '.wto/' >> ~/.config/git/ignore`) or per repo (`echo '.wto/' >> .git/info/exclude`).
+
+#### Auto-copying files (`.wto/copy-files`)
+
+Gitignored files like `.env` or `google-services.json` aren't included in worktrees. List them in `.wto/copy-files`:
 
 ```
 # one path per line, relative to repo root
@@ -59,11 +74,26 @@ app/google-services.json
 Files are copied from the main repo into each new worktree at creation time.
 
 **Config sources** (all merged):
-| File | Scope | Committable? |
-|------|-------|--------------|
-| `.wto-copy` | Project | Yes |
-| `.wto-copy.local` | Personal (gitignored) | No |
-| `~/.config/wto/<repo-name>.conf` | Global (for repos you don't own) | N/A |
+| File | Scope | Notes |
+|------|-------|-------|
+| `.wto/copy-files` | Project (gitignored) | Preferred |
+| `.wto-copy` | Project | Deprecated — prints a note; move to `.wto/copy-files` |
+| `.wto-copy.local` | Personal (gitignored) | Deprecated — prints a note; move to `.wto/copy-files` |
+| `~/.config/wto/<repo-name>.conf` | Global (for repos you don't own) | |
+
+#### Setup script (`.wto/setup`)
+
+Bootstrap commands (e.g. `pod install`, `npm install`) go in `.wto/setup`:
+
+```zsh
+pod install
+```
+
+- Runs after file copy, before the IDE opens.
+- Executed as `zsh .wto/setup` (no exec bit needed) with the **new worktree as cwd**.
+- Env vars: `WTO_SOURCE_ROOT` (main repo root), `WTO_WORKTREE` (new worktree path).
+- On failure: prints `warn: setup failed (exit N)`, still opens the IDE / Claude, and `wto` returns 1.
+- Skip with `--no-setup`. No global fallback — setup is per repo only.
 
 ### Extending
 
